@@ -22,9 +22,9 @@ outside of the hierarchy controlled by Lustre.
 A common example of this is controlling elements inside of the body. Normally,
 Lustre apps are mounted on a single element, so the body is not controlled by
 Lustre directly. It can make sense to visually add elements to the body though,
-for example to render full-screen toasts or modals that should be on top of all
-other elements in the document. We want the code to render these elements to
-live locally in the part of the application where they make logical sense, but
+for example to render full-screen modals or toasts that should be on top of all
+other elements in the document. We want the code that renders these elements to
+live locally in the part of the application where it makes logical sense, but
 visually, we need to "move" the rendered elements outside of our app, to avoid
 tricky issues with absolutely positioned elements.
 
@@ -97,7 +97,7 @@ there are a number of potential issues:
 - `position: fixed` only places the element relative to the viewport when no
   ancestor element has `transform`, `perspective` or `filter` set.
 - `z-index: 999` only constrains the z-index within the current stacking context,
-  and when multiple elements have the same `z-index` value set, the are rendered
+  and when multiple elements have the same `z-index` value set, they are rendered
   in tree traversal order again.
 
 `lustre_portal` makes it possible to avoid these issues by allowing us to break
@@ -186,7 +186,11 @@ This can be used to add global event listeners and classes to the body tag:
 ```gleam
 fn view() {
   html.div([], [
-    html.portal(to: "body", attributes: [attribute.class("light")], children: [])
+    portal.portal(
+      to: "body",
+      attributes: [attribute.class("light")],
+      children: []
+    )
   ])
 }
 ```
@@ -199,7 +203,7 @@ will result in
 </body>
 ```
 
-**Note:** You can not use portal to set properties on another element!
+**Note:** You can not use a portal to set properties on another element!
 
 ## Server-side rendering
 

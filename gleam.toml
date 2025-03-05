@@ -2,7 +2,7 @@ name = "lustre_portal"
 version = "1.0.0"
 target = "javascript"
 
-description = "A portal client-component for lustre"
+description = "A Portal Web Component for Lustre"
 repository = { type = "github", user = "lustre-labs", repo = "portal" }
 licences = ["MIT"]
 
