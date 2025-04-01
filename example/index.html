@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>🚧 example</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    .flash-container {
+      position: fixed;
+      z-index: 9999;
+      bottom: 15px;
+      right: 15px;
+      width: 300px;
+    }
+
+    .flash {
+      margin-top: 15px;
+      padding: 15px 10px;
+      border-radius: 5px;
+      width: 100%;
+      color: white;
+      font-size: 0.8em;
+      font-family: sans;
+      transition: opacity 0.5s, transform 0.5s;
+
+      &.warning {
+        background-color: darkgoldenrod;
+      }
+
+      &.error {
+        background-color: darkred;
+      }
+
+      &.info {
+        background-color: blue;
+      }
+
+      &.success {
+        background-color: darkgreen;
+      }
+    }
+
+    @starting-style {
+      .flash {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+    }
+
+    .actions {
+      display: flex;
+      gap: 15px;
+    }
+
+    .btn {
+      display: inline-block;
+      appearance: none;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      color: white;
+      font-size: 0.8em;
+      font-family: sans;
+
+      &.warning {
+        background-color: darkgoldenrod;
+      }
+
+      &.error {
+        background-color: darkred;
+      }
+
+      &.info {
+        background-color: blue;
+      }
+
+      &.success {
+        background-color: darkgreen;
+      }
+    }
+  </style>
+
+  <!-- Uncomment this if you add the TailwindCSS integration -->
+  <!-- <link rel="stylesheet" href="/priv/static/example.css"> -->
+  <script type="module" src="/priv/static/example.mjs"></script>
+</head>
+
+<body>
+  <div id="app"></div>
+</body>
+
+</html>
