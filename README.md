@@ -33,7 +33,7 @@ Consider the following example:
 ```gleam
 fn view(model) {
   html.div([], [
-    html.h3("Lustre Portal Example"),
+    html.h3([], [html.text("Lustre Portal Example")]),
     view_flashes(model.flashes)
   ])
 }
@@ -60,28 +60,34 @@ with the following CSS:
 ```css
 .flash-container {
   position: fixed;
-  z-index: 999;
-  bottom: 20%;
-  right: 20%;
+  z-index: 9999;
+  bottom: 15px;
+  right: 15px;
   width: 300px;
-  margin-right: -150px;
 }
+
 .flash {
   margin-top: 15px;
-  padding: 30px 15px;
+  padding: 15px 10px;
   border-radius: 5px;
   width: 100%;
   color: white;
-  
+  font-size: 0.8em;
+  font-family: sans;
+  transition: opacity 0.5s, transform 0.5s;
+
   &.warning {
     background-color: darkgoldenrod;
   }
+
   &.error {
     background-color: darkred;
   }
+
   &.info {
-    background-color: darkblue;
+    background-color: blue;
   }
+
   &.success {
     background-color: darkgreen;
   }
@@ -113,7 +119,7 @@ pub fn main() {
 
 pub fn view(model) {
   html.div([], [
-    html.h3("Lustre Portal Example"),
+    html.h3([], [html.text("Lustre Portal Example")]),
 
     portal.portal(to: "body", attributes: [], children: [
       view_flashes(model.flashes)
