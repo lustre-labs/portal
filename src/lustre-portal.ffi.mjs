@@ -180,6 +180,44 @@ class Portal extends HTMLElement {
     }
   }
 
+  #insertBefore(newNode, referenceNode) {
+    if (this.#targetElement) {
+      this.#targetElement.insertBefore(newNode, referenceNode)
+    } else {
+      super.insertBefore(newNode, referenceNode)
+    }
+  }
+
+  #moveBefore(newNode, referenceNode) {
+    if (this.#targetElement) {
+      this.#targetElement.moveBefore(newNode, referenceNode)
+    } else {
+      super.moveBefore(newNode, referenceNode)
+    }
+  }
+
+  #moveOrInsert(newNode, referenceNode, callback) {
+    const newNodes = newNode.nodeType === Node.DOCUMENT_FRAGMENT_NODE
+      ? [...newNode.childNodes]
+      : [newNode];
+
+    const oldIndex = this.#childNodes.indexOf(newNode)
+
+    const result = callback(newNode, referenceNode ?? this.lastChild?.nextSibling ?? null)
+
+    if (oldIndex >= 0) {
+      this.#childNodes.splice(oldIndex, 1)
+    }
+
+    const index = referenceNode
+      ? this.#childNodes.indexOf(referenceNode)
+      : this.#childNodes.length;
+
+    this.#childNodes.splice(index, 0, ...newNodes)
+
+    return result
+  }
+
   // -- FORWARD FUNCTIONS CALLED BY THE RECONCILER -----------------------------
 
   get childNodes() {
@@ -229,24 +267,14 @@ class Portal extends HTMLElement {
     this.#eventListeners.splice(index, 1);
   }
 
+  moveBefore(newNode, referenceNode) {
+    return this.#moveOrInsert(newNode, referenceNode,
+      (newNode, referenceNode) => this.#moveBefore(newNode, referenceNode))
+  }
+
   insertBefore(newNode, referenceNode) {
-    const index = referenceNode
-      ? this.#childNodes.indexOf(referenceNode)
-      : this.#childNodes.length;
-
-    referenceNode ??= this.lastChild?.nextSibling ?? null;
-
-    const newNodes = newNode.nodeType === Node.DOCUMENT_FRAGMENT_NODE
-      ? [...newNode.childNodes]
-      : [newNode];
-
-    if (this.#targetElement) {
-      this.#targetElement.insertBefore(newNode, referenceNode);
-    } else {
-      super.insertBefore(newNode, referenceNode);
-    }
-
-    this.#childNodes.splice(index, 0, ...newNodes)
+    return this.#moveOrInsert(newNode, referenceNode,
+      (newNode, referenceNode, ) => this.#insertBefore(newNode, referenceNode))
   }
 
   removeChild(child) {
@@ -259,22 +287,6 @@ class Portal extends HTMLElement {
     }
     
     this.#childNodes.splice(index, 1);
-  }
-
-  replaceChild(newChild, oldChild) {
-    const index = this.#childNodes.indexOf(oldChild);
-
-    const newNodes = newChild.nodeType === Node.DOCUMENT_FRAGMENT_NODE
-      ? [...newChild.childNodes]
-      : [newChild];
-
-    if (this.#targetElement) {
-      this.#targetElement.replaceChild(newChild, oldChild);
-    } else {
-      super.replaceChild(newChild, oldChild);
-    }
-
-    this.#childNodes.splice(index, 1, ...newNodes);
   }
 }
 
@@ -302,7 +314,7 @@ function findInsertionIndex(array, node) {
 function addElement(array, node) {
   const index = findInsertionIndex(array, node);
     
-  console.log('addElement', index, node.isConnected, node, [...array])
+  // console.log('addElement', index, node.isConnected, node, [...array])
   if (array[index] !== node) {
     array.splice(index, 0, node);
   }
@@ -314,7 +326,7 @@ function removeElement(array, node) {
   // NOTE: we cannot use the binary search here, because when moving
   const index = array.indexOf(node);
 
-  console.log('removeElement', index, node.isConnected, node, [...array])
+  // console.log('removeElement', index, node.isConnected, node, [...array])
 
   if (index >= 0) {
     array.splice(index, 1);
