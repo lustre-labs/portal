@@ -15,7 +15,7 @@ target = "javascript"
 
 [dependencies]
 gleam_stdlib = ">= 0.44.0 and < 2.0.0"
-lustre = { git = "https://github.com/lustre-labs/lustre.git", ref = "v5" }
+lustre = ">= 5.0.2 and < 6.0.0"
 lustre_portal = { path = ".." }
 
 [dev-dependencies]
