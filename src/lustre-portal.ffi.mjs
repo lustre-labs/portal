@@ -22,13 +22,24 @@ class Portal extends HTMLElement {
   }
 
   connectedCallback() {
-    // TODO: there might be a very fancy way of avoiding unmount/mount sequences
-    // if the position of the portal relative to other portals does not change
     this.#mount(this.#getFragment());
   }
 
   disconnectedCallback() {
     this.#unmount();
+  }
+
+  connectedMoveCallback() {
+    const portalsAtTarget = (this.#targetElement[portals] ??= []);
+    const oldIndex = removeElement(portalsAtTarget, this);
+    const newIndex = addElement(portalsAtTarget, this);
+
+    if (oldIndex !== newIndex) {
+     const referenceNode = portalsAtTarget[newIndex+1]?.firstChild ?? null;
+     for (const childNode of this.#childNodes) {
+       this.#targetElement.moveBefore(childNode, referenceNode);
+     }
+    }
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -314,7 +325,6 @@ function findInsertionIndex(array, node) {
 function addElement(array, node) {
   const index = findInsertionIndex(array, node);
     
-  // console.log('addElement', index, node.isConnected, node, [...array])
   if (array[index] !== node) {
     array.splice(index, 0, node);
   }
@@ -323,10 +333,9 @@ function addElement(array, node) {
 }
 
 function removeElement(array, node) {
-  // NOTE: we cannot use the binary search here, because when moving
+  // NOTE: we cannot use the binary search here, because the element is already
+  // no longer part of the document tree, compareDocumentPosition will not work!
   const index = array.indexOf(node);
-
-  // console.log('removeElement', index, node.isConnected, node, [...array])
 
   if (index >= 0) {
     array.splice(index, 1);
