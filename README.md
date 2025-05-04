@@ -177,40 +177,6 @@ The rendered result is guaranteed to be:
 </body>
 ```
 
-## Portals with attributes
-
-You can set attributes and event listeners on a portal like you would on any
-other Lustre element. Like child elements, these will be added to the target
-element instead.
-
-Existing attributes on the target element will be overridden, and when multiple
-portals define the same attribute, they may override each other in unpredictable
-ways. `class` and `style` attributes are handled separately and are merged instead.
-
-This can be used to add global event listeners and classes to the body tag:
-
-```gleam
-fn view() {
-  html.div([], [
-    portal.portal(
-      to: "body",
-      attributes: [attribute.class("light")],
-      children: []
-    )
-  ])
-}
-```
-
-will result in
-
-```html
-<body class="light">
-  <!-- ... -->
-</body>
-```
-
-**Note:** You can not use a portal to set properties on another element!
-
 ## Server-side rendering
 
 `lustre_portal` is a browser-only Web Component, so server-side rendering is not

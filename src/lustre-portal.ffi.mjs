@@ -12,8 +12,6 @@ class Portal extends HTMLElement {
 
   #targetElement = null;
   #childNodes = [];
-  #eventListeners = [];
-  #attributes = new Map();
 
   constructor() {
     super()
@@ -22,6 +20,11 @@ class Portal extends HTMLElement {
   }
 
   connectedCallback() {
+    // the portal element exists in the tree, but we do not want it to have any
+    // impact on layout.
+    this.style.display = 'none';
+    // if the target is invalid, this call to getFragment will remove all
+    // elements from the tree.
     this.#mount(this.#getFragment());
   }
 
@@ -30,6 +33,10 @@ class Portal extends HTMLElement {
   }
 
   connectedMoveCallback() {
+    if (!this.#targetElement) {
+      return;
+    }
+    
     const portalsAtTarget = (this.#targetElement[portals] ??= []);
     const oldIndex = removeElement(portalsAtTarget, this);
     const newIndex = addElement(portalsAtTarget, this);
@@ -65,41 +72,19 @@ class Portal extends HTMLElement {
     if (this.#targetElement) {
       removeElement(this.#targetElement[portals], this);  
     }
-    
-    for (const attributeName of this.#attributes.keys()) {
-      this.#removeAttribute(attributeName);
-    }
-
-    for (const { type, listener, options } of this.#eventListeners) {
-      this.#removeEventListener(type, listener, options);
-    }
 
     return this.#getFragment();
   }
 
   #mount(fragment) {
-    if (!this.isConnected) {
+    if (!this.isConnected || !this.#targetElement) {
       return;
     }
     
-    for (const [name, value] of this.#attributes.entries()) {
-      this.#setAttribute(name, value)
-    }
-
-    for (const { type, listener, options } of this.#eventListeners) {
-      this.#addEventListener(type, listener, options);
-    }
-
-    if (this.#targetElement) {
       const portalsAtTarget = (this.#targetElement[portals] ??= []);
       const index = addElement(portalsAtTarget, this);
       const referenceNode = portalsAtTarget[index+1]?.firstChild ?? null;
       this.#targetElement.insertBefore(fragment, referenceNode);
-      this.style.display = 'none';
-    } else {
-      super.replaceChildren(fragment);
-      this.style.removeProperty('display');
-    }
   }
 
   #remount(newTarget) {
@@ -118,12 +103,7 @@ class Portal extends HTMLElement {
       return null;
     }
 
-    const rootNode = this.getRootNode();
-    if (rootNode === this) {
-      return document.querySelector(to);
-    } else {
-      return rootNode.querySelector(to);
-    }
+    return document.querySelector(to);
   }
 
   #getFragment() {
@@ -133,78 +113,6 @@ class Portal extends HTMLElement {
     }
 
     return fragment;
-  }
-
-  #setAttribute(name, value) {
-    const isOwnAttribute = Portal.observedAttributes.includes(name);
-    if (!this.#targetElement || isOwnAttribute) {
-      super.setAttribute(name, value);
-    } else if (name === 'class') {
-      this.#removeClasses();
-      this.#targetElement.setAttribute(name, (this.#targetElement.getAttribute(name) ?? '') + ' ' + value)
-    } else if (name === 'style') {
-      this.#removeStyles();
-      this.#targetElement.style.cssText += value;
-    } else {
-      this.#targetElement.setAttribute(name, value);
-    }
-  }
-
-  #removeAttribute(attributeName) {
-    if (!this.#targetElement || Portal.observedAttributes.includes(attributeName)) {
-      super.removeAttribute(attributeName);
-    } else if (attributeName === 'class') {
-      this.#removeClasses();
-    } else if (attributeName === 'style') {
-      this.#removeStyles();
-    } else {
-      this.#targetElement.removeAttribute(attributeName);
-    }
-  }
-
-  #removeClasses() {
-    const classNames = this.#attributes.get('class')?.split(/\s+/g) ?? []; 
-    for (const className of classNames) {
-      this.#targetElement.classList.remove(className);
-    }
-  }
-
-  #removeStyles() {
-    for (const property of extractPropertyNames(this.#attributes.get('style'))) {
-      this.#targetElement.style.removeProperty(property);
-    }
-  }
-
-  #addEventListener(type, listener, options) {
-    if (this.#targetElement) {
-      this.#targetElement.addEventListener(type, listener, options);
-    } else {
-      super.addEventListener(type, listener, options);
-    }
-  }
-
-  #removeEventListener(type, listener, options) {
-    if (this.#targetElement) {
-      this.#targetElement.removeEventListener(type, listener, options);
-    } else {
-      super.removeEventListener(type, listener, options);
-    }
-  }
-
-  #insertBefore(newNode, referenceNode) {
-    if (this.#targetElement) {
-      this.#targetElement.insertBefore(newNode, referenceNode)
-    } else {
-      super.insertBefore(newNode, referenceNode)
-    }
-  }
-
-  #moveBefore(newNode, referenceNode) {
-    if (this.#targetElement) {
-      this.#targetElement.moveBefore(newNode, referenceNode)
-    } else {
-      super.moveBefore(newNode, referenceNode)
-    }
   }
 
   #moveOrInsert(newNode, referenceNode, callback) {
@@ -243,59 +151,22 @@ class Portal extends HTMLElement {
     return this.#childNodes[this.#childNodes.length - 1];
   }
 
-  getAttribute(attributeName) {
-    if (!this.#targetElement || Portal.observedAttributes.includes(attributeName)) {
-      return super.getAttribute(attributeName);
-    } else {
-      return this.#targetElement.getAttribute(attributeName);
-    }
-  }
-
-  setAttribute(name, value) {
-    this.#setAttribute(name, value);
-    if (!Portal.observedAttributes.includes(name)) {
-      this.#attributes.set(name, value);
-    }
-  }
-
-  removeAttribute(attributeName) {
-    this.#removeAttribute(attributeName);
-    this.#attributes.delete(attributeName);
-  }
-
-  addEventListener(type, listener, options) {
-    this.#addEventListener(type, listener, options);
-    const capture = typeof options === 'boolean' ? options : !!options?.capture;
-    this.#eventListeners.push({ type, listener, capture, options });
-  }
-
-  removeEventListener(type, listener, options) {
-    this.#removeEventListener(type, listener, options);
-    // SPEC: removeEventListener only matches options based on the capture flag.
-    const capture = typeof options === 'boolean' ? options : !!options?.capture;
-    const index = this.#eventListeners.findIndex(listener =>
-      listener.type === type && listener.listener === listener && listener.capture === capture);
-    this.#eventListeners.splice(index, 1);
-  }
-
   moveBefore(newNode, referenceNode) {
     return this.#moveOrInsert(newNode, referenceNode,
-      (newNode, referenceNode) => this.#moveBefore(newNode, referenceNode))
+      (newNode, referenceNode) =>
+        this.#targetElement?.moveBefore(newNode, referenceNode));
   }
 
   insertBefore(newNode, referenceNode) {
     return this.#moveOrInsert(newNode, referenceNode,
-      (newNode, referenceNode, ) => this.#insertBefore(newNode, referenceNode))
+      (newNode, referenceNode, ) =>
+        this.#targetElement?.insertBefore(newNode, referenceNode));
   }
 
   removeChild(child) {
     const index = this.#childNodes.indexOf(child);
 
-    if (this.#targetElement) {
-      this.#targetElement.removeChild(child);
-    } else {
-      super.removeChild(child);
-    }
+    this.#targetElement?.removeChild(child);
     
     this.#childNodes.splice(index, 1);
   }
