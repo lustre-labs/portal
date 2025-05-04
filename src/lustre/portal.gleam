@@ -22,8 +22,8 @@ pub fn register() -> Result(Nil, lustre.Error) {
 @external(javascript, "../lustre-portal.ffi.mjs", "register")
 fn do_register() -> Nil
 
-/// Render a portal, teleporting all given attributes and children to another
-/// element in the DOM, outside of lustres control.
+/// Render a portal, teleporting all children to another element in the DOM,
+/// outside of lustres control.
 ///
 /// The `selector` can be any valid CSS selector. The first found matching
 /// element will be used as the target.
@@ -31,12 +31,11 @@ fn do_register() -> Nil
 /// **Note:** Please see the [README](../index.html) for additional usage notes.
 pub fn portal(
   to selector: String,
-  attributes attributes: List(attribute.Attribute(msg)),
-  children children: List(element.Element(msg)),
+  teleport elements: List(element.Element(msg)),
 ) -> element.Element(msg) {
   element.element(
     "lustre-portal",
-    [attribute.attribute("to", selector), ..attributes],
-    children,
+    [attribute.attribute("to", selector)],
+    elements,
   )
 }
