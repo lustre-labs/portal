@@ -1,3 +1,5 @@
+import { isLustreNode } from '../lustre/lustre/vdom/reconciler.ffi.mjs';
+
 export function register() {
   customElements.define("lustre-portal", Portal)
 }
@@ -7,7 +9,7 @@ const portals = Symbol('portals');
 class Portal extends HTMLElement {
 
   // -- CUSTOM ELEMENT IMPLEMENTATION ------------------------------------------
-  
+
   static observedAttributes = ["to"];
 
   #targetElement = null;
@@ -36,7 +38,7 @@ class Portal extends HTMLElement {
     if (!this.#targetElement) {
       return;
     }
-    
+
     const portalsAtTarget = (this.#targetElement[portals] ??= []);
     const oldIndex = removeElement(portalsAtTarget, this);
     const newIndex = addElement(portalsAtTarget, this);
@@ -70,7 +72,7 @@ class Portal extends HTMLElement {
 
   #unmount() {
     if (this.#targetElement) {
-      removeElement(this.#targetElement[portals], this);  
+      removeElement(this.#targetElement[portals], this);
     }
 
     return this.#getFragment();
@@ -80,11 +82,11 @@ class Portal extends HTMLElement {
     if (!this.isConnected || !this.#targetElement) {
       return;
     }
-    
-      const portalsAtTarget = (this.#targetElement[portals] ??= []);
-      const index = addElement(portalsAtTarget, this);
-      const referenceNode = portalsAtTarget[index+1]?.firstChild ?? null;
-      this.#targetElement.insertBefore(fragment, referenceNode);
+
+    const portalsAtTarget = (this.#targetElement[portals] ??= []);
+    const index = addElement(portalsAtTarget, this);
+    const referenceNode = portalsAtTarget[index+1]?.firstChild ?? null;
+    this.#targetElement.insertBefore(fragment, referenceNode);
   }
 
   #remount(newTarget) {
@@ -96,14 +98,27 @@ class Portal extends HTMLElement {
       this.#targetElement = newTarget;
     }
   }
-  
+
   #queryTarget() {
     const to = this.to;
     if (!to) {
       return null;
     }
 
-    return document.querySelector(to);
+    // we do not allow you to target Lustre elements - so querying an element
+    // in the same ShadowRoot cannot ever make sense, because you already
+    // control the entire tree! It only makes sense to target top-level elements.
+    const target = document.querySelector(to);
+    if (!target) {
+      return null;
+    }
+
+    if (isLustreNode(target)) {
+      console.warn('%clustre-portal%c Target of portal %o is not valid. Portal targets can not be inside a Lustre application.', 'background-color: #ffaff3; color: #151515; border-radius: 3px; padding: 0 3px;', '', this)
+      return null;
+    }
+
+    return target;
   }
 
   #getFragment() {
@@ -167,7 +182,7 @@ class Portal extends HTMLElement {
     const index = this.#childNodes.indexOf(child);
 
     this.#targetElement?.removeChild(child);
-    
+
     this.#childNodes.splice(index, 1);
   }
 }
@@ -195,7 +210,7 @@ function findInsertionIndex(array, node) {
 
 function addElement(array, node) {
   const index = findInsertionIndex(array, node);
-    
+
   if (array[index] !== node) {
     array.splice(index, 0, node);
   }
@@ -224,6 +239,6 @@ function extractPropertyNames(style) {
   if (!style) {
     return [];
   }
-  
+
   return style.replaceAll(commentRe, '').match(propertyRe);
 }
