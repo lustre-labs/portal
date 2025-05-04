@@ -121,9 +121,7 @@ pub fn view(model) {
   html.div([], [
     html.h3([], [html.text("Lustre Portal Example")]),
 
-    portal.portal(to: "body", attributes: [], children: [
-      view_flashes(model.flashes)
-    ])
+    portal.portal(to: "body", teleport: [view_flashes(model.flashes)])
   ])
 }
 ```
@@ -161,8 +159,8 @@ Given the following view:
 ```gleam
 fn view() {
   html.div([], [
-    portal.portal(to: "body", [], [html.div([], [text("A")])]),
-    portal.portal(to: "body", [], [html.div([], [text("B")])])
+    portal.portal(to: "body", teleport: [html.div([], [text("A")])]),
+    portal.portal(to: "body", teleport: [html.div([], [text("B")])])
   ])
 }
 ```
@@ -179,8 +177,23 @@ The rendered result is guaranteed to be:
 
 ## Server-side rendering
 
-`lustre_portal` is a browser-only Web Component, so server-side rendering is not
-supported. When using SSR, you are usually in control of the entire document. It
-is recommended to use other mechanisms or structure your code differently to
-produce the desired markup.
+`lustre_portal` is a browser-only web component. Rendering it on the server
+will result in the HTML for all teleported children to be _inside_ of the portal
+element instead of at the portal target:
+
+```html
+<div id="app">
+  <lustre-portal to="body">
+    <div class="flash-container">
+      <!-- ... -->
+    </div>
+  </lustre-portal>
+</div>
+```
+
+Once the browser has loaded the web component, the elements will be correctly
+teleported to their target.
+
+If you require a specific structure in your server-side rendered HTML,
+`lustre_portal` will not work for that use case.
 
