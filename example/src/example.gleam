@@ -49,6 +49,7 @@ type Msg {
   UserClickedCancel
   UserClickedDelete
   FlashTimeoutExpired
+  UserClickedAck(Int)
 }
 
 fn update(model, msg) {
@@ -64,6 +65,10 @@ fn update(model, msg) {
     }
     UserClickedDelete -> {
       add_flash(model, Error, "Could not delete: No such existence")
+    }
+    UserClickedAck(id) -> {
+      let flashes = model.flashes |> list.filter(fn(flash) { flash.id != id })
+      #(Model(..model, flashes:), effect.none())
     }
     FlashTimeoutExpired ->
       case model.flashes {
@@ -122,13 +127,16 @@ fn view_button(
   )
 }
 
-fn view_flashes(flashes: List(Flash)) -> Element(msg) {
+fn view_flashes(flashes: List(Flash)) -> Element(Msg) {
   keyed.div([attribute.class("flash-container")], {
     use flash <- list.map(flashes)
 
     let html =
       html.div([attribute.class("flash"), severity(flash.severity)], [
-        html.text(flash.message),
+        html.p([], [html.text(flash.message)]),
+        html.button([event.on_click(UserClickedAck(flash.id))], [
+          html.text("Acknowledged"),
+        ]),
       ])
 
     #(int.to_string(flash.id), html)
