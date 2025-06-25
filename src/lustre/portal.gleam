@@ -35,8 +35,8 @@ fn do_register(name: String) -> Nil
 /// element will be used as the target.
 ///
 /// **Note:** Please see the [README](../index.html) for additional usage notes.
-pub fn portal(
-  to selector: String,
+pub fn to(
+  matching selector: String,
   teleport elements: List(element.Element(msg)),
 ) -> element.Element(msg) {
   element.element(

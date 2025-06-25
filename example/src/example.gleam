@@ -107,7 +107,7 @@ fn view(model: Model) {
       view_button("Cancel", Warning, UserClickedCancel),
       view_button("Delete", Error, UserClickedDelete),
     ]),
-    portal.portal(to: "body", teleport: [view_flashes(model.flashes)]),
+    portal.to(matching: "body", teleport: [view_flashes(model.flashes)]),
   ])
 }
 
