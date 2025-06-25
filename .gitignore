@@ -2,4 +2,5 @@
 *.ez
 build/
 erl_crash.dump
-**/priv/static/
+example/priv/static/
+examples/**/priv/static/
