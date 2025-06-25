@@ -1,7 +1,7 @@
 import { isLustreNode } from '../lustre/lustre/vdom/reconciler.ffi.mjs';
 
-export function register() {
-  customElements.define("lustre-portal", Portal)
+export function register(name) {
+  customElements.define(name, Portal)
 }
 
 const portals = Symbol('portals');
