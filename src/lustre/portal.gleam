@@ -1,7 +1,10 @@
+import gleam/dynamic/decode
 import lustre.{type Error}
-import lustre/attribute
+import lustre/attribute.{type Attribute}
 import lustre/element.{type Element}
 import lustre/element/html
+import lustre/event
+import lustre/server_component
 
 const component_name = "lustre-portal"
 
@@ -38,13 +41,64 @@ fn do_register(name: String) -> Nil
 /// **Note:** Please see the [README](../index.html) for additional usage notes.
 pub fn to(
   matching selector: String,
+  with attributes: List(Attribute(msg)),
   teleport elements: List(Element(msg)),
 ) -> Element(msg) {
   element.element(
-    "lustre-portal",
-    [attribute.attribute("to", selector)],
+    component_name,
+    [attribute.attribute("to", selector), ..attributes],
     elements,
   )
+}
+
+pub type InvalidReason {
+  /// Emitted when the selector passed is missing or not valid.
+  InvalidSelector
+  /// Emitted when the selector does not match an element in the document.
+  TargetNotFound
+  /// Emitted whe the selector does match an element in the document, but that
+  /// element is inside of another lustre app.
+  ///
+  /// This is intentionally not allowed to prevent 2 lustre apps updating the
+  /// same node from 2 different places. It is recommended to use standard
+  /// Gleam techniques (passing/returning data from functions) and re-structure
+  /// your app in such a way that using a portal is no longer necessary.
+  TargetInsideLustre
+}
+
+fn invalid_reason_decoder() -> decode.Decoder(InvalidReason) {
+  use variant <- decode.then(decode.string)
+  case variant {
+    _ if variant == invalid_selector_tag -> decode.success(InvalidSelector)
+    _ if variant == target_not_found_tag -> decode.success(TargetNotFound)
+    _ if variant == target_inside_lustre_tag ->
+      decode.success(TargetInsideLustre)
+    _ -> decode.failure(InvalidSelector, "InvalidReason")
+  }
+}
+
+@internal
+pub const invalid_selector_tag = "invalid-selector"
+
+@internal
+pub const target_not_found_tag = "target-not-found"
+
+@internal
+pub const target_inside_lustre_tag = "target-inside-lustre"
+
+/// An optional event that is fired whenever the selector is changed but no
+/// element could be found.
+///
+/// This is rarely needed but might be useful for debugging.
+pub fn on_invalid_target(handle: fn(InvalidReason) -> msg) -> Attribute(msg) {
+  // event.on("invalid", decode.success(msg))
+  let decoder = {
+    use reason <- decode.field("detail", invalid_reason_decoder())
+    decode.success(handle(reason))
+  }
+
+  event.on("invalid", decoder)
+  |> server_component.include(["detail"])
 }
 
 /// Inline the portal component script as a `<script>` tag. Where possible

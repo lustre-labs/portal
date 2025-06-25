@@ -121,7 +121,7 @@ pub fn view(model) {
   html.div([], [
     html.h3([], [html.text("Lustre Portal Example")]),
 
-    portal.to(matching: "body", teleport: [view_flashes(model.flashes)])
+    portal.to(matching: "body", with: [], teleport: [view_flashes(model.flashes)])
   ])
 }
 ```
@@ -159,8 +159,8 @@ Given the following view:
 ```gleam
 fn view() {
   html.div([], [
-    portal.to(matching: "body", teleport: [html.div([], [text("A")])]),
-    portal.to(matching: "body", teleport: [html.div([], [text("B")])])
+    portal.to(matching: "body", with: [], teleport: [html.div([], [text("A")])]),
+    portal.to(matching: "body", with: [], teleport: [html.div([], [text("B")])])
   ])
 }
 ```
