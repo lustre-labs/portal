@@ -1,5 +1,8 @@
 import esgleam
 import esgleam/mod/install
+import gleam/regexp
+import gleam/result
+import gleam/string
 import simplifile
 
 pub fn main() {
@@ -8,8 +11,10 @@ pub fn main() {
     _ -> install.fetch()
   }
 
-  let _ = echo bundle(False)
-  let _ = echo bundle(True)
+  let assert Ok(_) = bundle(False)
+  let assert Ok(_) = bundle(True)
+
+  let assert Ok(_) = inject_script()
 }
 
 fn bundle(minify) {
@@ -29,4 +34,35 @@ fn bundle(minify) {
   |> esgleam.raw("--outfile=" <> path)
   |> esgleam.minify(minify)
   |> esgleam.bundle()
+}
+
+fn inject_script() {
+  let script_path = "./priv/static/lustre-portal.min.mjs"
+  use script <- result.try(simplifile.read(script_path))
+
+  let module_path = "./src/lustre/portal.gleam"
+  use module <- result.try(simplifile.read(module_path))
+
+  let script =
+    script
+    |> string.trim
+    |> string.replace("\n", "\\n")
+    |> string.replace("\\", "\\\\")
+    |> string.replace("\"", "\\\"")
+    |> string.trim
+
+  let inject_regexp = "// <<INJECT SCRIPT>>\\n    .+,"
+  let options = regexp.Options(case_insensitive: False, multi_line: True)
+  let assert Ok(re) = regexp.compile(inject_regexp, options)
+
+  let assert [before, after] = regexp.split(re, module)
+
+  simplifile.write(
+    to: module_path,
+    contents: before
+      <> "// <<INJECT SCRIPT>>\n    \""
+      <> script
+      <> "\","
+      <> after,
+  )
 }

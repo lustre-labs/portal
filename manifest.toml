@@ -16,6 +16,7 @@ packages = [
 
 [requirements]
 esgleam = { version = ">= 0.8.0 and < 1.0.0" }
+gleam_regexp = { version = ">= 1.1.1 and < 2.0.0" }
 gleam_stdlib = { version = ">= 0.44.0 and < 2.0.0" }
 lustre = { version = ">= 5.2.1 and < 6.0.0" }
 simplifile = { version = ">= 2.3.0 and < 3.0.0" }
