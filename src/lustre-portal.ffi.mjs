@@ -1,4 +1,9 @@
 import { isLustreNode } from '../lustre/lustre/vdom/reconciler.ffi.mjs';
+import {
+  invalid_selector_tag,
+  target_inside_lustre_tag,
+  target_not_found_tag,
+} from './lustre/portal.mjs';
 
 export function register(name) {
   customElements.define(name, Portal)
@@ -100,25 +105,36 @@ class Portal extends HTMLElement {
   }
 
   #queryTarget() {
-    const to = this.to;
-    if (!to) {
-      return null;
+    // we coerce to an empty string such that not setting the attribute
+    // also throws with invalid-selector
+    const to = this.to ?? '';
+
+    let target = null;
+    try {
+      target = document.querySelector(to)
+    } catch {
+      return this.#dispatchInvalid(invalid_selector_tag);
     }
 
+    if (!target) {
+      return this.#dispatchInvalid(target_not_found_tag);
+    }    
+    
     // we do not allow you to target Lustre elements - so querying an element
     // in the same ShadowRoot cannot ever make sense, because you already
     // control the entire tree! It only makes sense to target top-level elements.
-    const target = document.querySelector(to);
-    if (!target) {
-      return null;
-    }
-
     if (isLustreNode(target)) {
-      console.warn('%clustre-portal%c Target of portal %o is not valid. Portal targets can not be inside a Lustre application.', 'background-color: #ffaff3; color: #151515; border-radius: 3px; padding: 0 3px;', '', this)
-      return null;
+      return this.#dispatchInvalid(target_inside_lustre_tag);
     }
 
     return target;
+  }
+
+  #dispatchInvalid(reason) {
+    this.dispatchEvent(new CustomEvent('invalid', {
+      detail: reason
+    }));
+    return null;
   }
 
   #getFragment() {

@@ -172,19 +172,26 @@ var Portal = class extends HTMLElement {
     }
   }
   #queryTarget() {
-    const to = this.to;
-    if (!to) {
-      return null;
+    const to = this.to ?? "";
+    let target = null;
+    try {
+      target = document.querySelector(to);
+    } catch {
+      return this.#dispatchInvalid(invalid_selector_tag);
     }
-    const target = document.querySelector(to);
     if (!target) {
-      return null;
+      return this.#dispatchInvalid(target_not_found_tag);
     }
     if (isLustreNode(target)) {
-      console.warn("%clustre-portal%c Target of portal %o is not valid. Portal targets can not be inside a Lustre application.", "background-color: #ffaff3; color: #151515; border-radius: 3px; padding: 0 3px;", "", this);
-      return null;
+      return this.#dispatchInvalid(target_inside_lustre_tag);
     }
     return target;
+  }
+  #dispatchInvalid(reason) {
+    this.dispatchEvent(new CustomEvent("invalid", {
+      detail: reason
+    }));
+    return null;
   }
   #getFragment() {
     const fragment3 = document.createDocumentFragment();
@@ -274,13 +281,16 @@ function register2() {
     if ($1) {
       return new Error(new ComponentAlreadyRegistered(component_name));
     } else {
-      register(component_name);
+      let $2 = register(component_name);
       return new Ok(void 0);
     }
   } else {
     return new Error(new NotABrowser());
   }
 }
+var invalid_selector_tag = "invalid-selector";
+var target_not_found_tag = "target-not-found";
+var target_inside_lustre_tag = "target-inside-lustre";
 
 // dev/entry.mjs
 register2();
