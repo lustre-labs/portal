@@ -11,13 +11,14 @@ pub fn main() {
     _ -> install.fetch()
   }
 
-  let assert Ok(_) = bundle(False)
-  let assert Ok(_) = bundle(True)
-
+  let assert Ok(_) = bundle(minify: False)
+  let assert Ok(_) = bundle(minify: True)
   let assert Ok(_) = inject_script()
+
+  Nil
 }
 
-fn bundle(minify) {
+fn bundle(minify minify) {
   let filename = case minify {
     True -> "lustre-portal.min.mjs"
     False -> "lustre-portal.mjs"
