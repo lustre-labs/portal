@@ -1,3 +1,12 @@
+// build/dev/javascript/gleam_stdlib/gleam/bool.mjs
+function guard(requirement, consequence, alternative) {
+  if (requirement) {
+    return consequence;
+  } else {
+    return alternative();
+  }
+}
+
 // build/dev/javascript/prelude.mjs
 var CustomType = class {
   withFields(fields) {
@@ -84,26 +93,26 @@ var isLustreNode = (node) => {
 
 // build/dev/javascript/lustre/lustre/runtime/client/runtime.ffi.mjs
 var is_browser = () => !!document2();
-var is_registered = (name) => is_browser() && customElements.get(name);
+var is_registered = (name2) => is_browser() && customElements.get(name2);
 
 // build/dev/javascript/lustre/lustre.mjs
 var ComponentAlreadyRegistered = class extends CustomType {
-  constructor(name) {
+  constructor(name2) {
     super();
-    this.name = name;
+    this.name = name2;
   }
 };
 var NotABrowser = class extends CustomType {
 };
 
-// build/dev/javascript/lustre_portal/lustre-portal.ffi.mjs
-function register(name) {
-  customElements.define(name, Portal);
+// build/dev/javascript/lustre_portal/lustre/portal.ffi.mjs
+function register(name2) {
+  customElements.define(name2, Portal);
 }
 var portals = Symbol("portals");
 var Portal = class extends HTMLElement {
   // -- CUSTOM ELEMENT IMPLEMENTATION ------------------------------------------
-  static observedAttributes = ["to"];
+  static observedAttributes = ["target", "root"];
   #targetElement = null;
   #childNodes = [];
   constructor() {
@@ -132,19 +141,28 @@ var Portal = class extends HTMLElement {
       }
     }
   }
-  attributeChangedCallback(name, oldValue, newValue) {
-    if (name === "to" && oldValue !== newValue) {
-      const newTarget = this.#queryTarget();
-      if (this.#targetElement !== newTarget) {
-        this.#remount(newTarget);
-      }
+  attributeChangedCallback(name2, oldValue, newValue) {
+    if (oldValue === newValue)
+      return;
+    const newTargetElement = this.#queryTarget();
+    if (this.#targetElement !== newTargetElement) {
+      this.#remount(newTargetElement);
     }
   }
-  get to() {
-    return super.getAttribute("to");
+  get target() {
+    return super.getAttribute("target");
   }
-  set to(value) {
-    super.setAttribute("to", value);
+  set target(value) {
+    super.setAttribute("target", typeof value === "string" ? value : "");
+  }
+  get root() {
+    return super.getAttribute("root");
+  }
+  set root(value) {
+    super.setAttribute(
+      "root",
+      value !== "relative" && value !== "document" ? "document" : value
+    );
   }
   // -- INTERNALs --------------------------------------------------------------
   #unmount() {
@@ -172,25 +190,44 @@ var Portal = class extends HTMLElement {
     }
   }
   #queryTarget() {
-    const to = this.to ?? "";
-    let target = null;
+    if (!this.target) {
+      return this.#dispatchError(
+        missing_selector_tag,
+        "The target attribute cannot be empty."
+      );
+    }
+    let root3 = this.root === "relative" ? this.getRootNode() : document;
+    let targetElement = null;
     try {
-      target = document.querySelector(to);
+      targetElement = root3.querySelector(this.target);
     } catch {
-      return this.#dispatchInvalid(invalid_selector_tag);
+      return this.#dispatchError(
+        invalid_selector_tag,
+        `The target "${this.target}" is not a valid query selector.`,
+        { selector: this.target }
+      );
     }
-    if (!target) {
-      return this.#dispatchInvalid(target_not_found_tag);
+    if (!targetElement) {
+      return this.#dispatchError(
+        target_not_found_tag,
+        `No element matching "${this.target}".`,
+        { selector: this.target }
+      );
     }
-    if (isLustreNode(target)) {
-      return this.#dispatchInvalid(target_inside_lustre_tag);
+    if (isLustreNode(targetElement)) {
+      return this.#dispatchError(
+        target_inside_lustre_tag,
+        `The element matching "${this.target}" must not be owned by Lustre.`
+      );
     }
-    return target;
+    return targetElement;
   }
-  #dispatchInvalid(reason) {
-    this.dispatchEvent(new CustomEvent("invalid", {
-      detail: reason
-    }));
+  #dispatchError(tag, message = "", detail = {}) {
+    this.dispatchEvent(
+      new CustomEvent("error", {
+        detail: { tag, message, ...detail }
+      })
+    );
     return null;
   }
   #getFragment() {
@@ -203,7 +240,10 @@ var Portal = class extends HTMLElement {
   #moveOrInsert(newNode, referenceNode, callback) {
     const newNodes = newNode.nodeType === Node.DOCUMENT_FRAGMENT_NODE ? [...newNode.childNodes] : [newNode];
     const oldIndex = this.#childNodes.indexOf(newNode);
-    const result = callback(newNode, referenceNode ?? this.lastChild?.nextSibling ?? null);
+    const result = callback(
+      newNode,
+      referenceNode ?? this.lastChild?.nextSibling ?? null
+    );
     if (oldIndex >= 0) {
       this.#childNodes.splice(oldIndex, 1);
     }
@@ -225,14 +265,18 @@ var Portal = class extends HTMLElement {
     return this.#moveOrInsert(
       newNode,
       referenceNode,
-      (newNode2, referenceNode2) => this.#targetElement?.moveBefore(newNode2, referenceNode2)
+      (newNode2, referenceNode2) => {
+        this.#targetElement?.moveBefore(newNode2, referenceNode2);
+      }
     );
   }
   insertBefore(newNode, referenceNode) {
     return this.#moveOrInsert(
       newNode,
       referenceNode,
-      (newNode2, referenceNode2) => this.#targetElement?.insertBefore(newNode2, referenceNode2)
+      (newNode2, referenceNode2) => {
+        this.#targetElement?.insertBefore(newNode2, referenceNode2);
+      }
     );
   }
   removeChild(child) {
@@ -273,21 +317,23 @@ function removeElement(array3, node) {
 }
 
 // build/dev/javascript/lustre_portal/lustre/portal.mjs
-var component_name = "lustre-portal";
+var name = "lustre-portal";
 function register2() {
-  let $ = is_browser();
-  if ($) {
-    let $1 = is_registered(component_name);
-    if ($1) {
-      return new Error(new ComponentAlreadyRegistered(component_name));
-    } else {
-      let $2 = register(component_name);
-      return new Ok(void 0);
+  return guard(
+    !is_browser(),
+    new Error(new NotABrowser()),
+    () => {
+      return guard(
+        is_registered(name),
+        new Error(new ComponentAlreadyRegistered(name)),
+        () => {
+          return new Ok(register(name));
+        }
+      );
     }
-  } else {
-    return new Error(new NotABrowser());
-  }
+  );
 }
+var missing_selector_tag = "missing-selector";
 var invalid_selector_tag = "invalid-selector";
 var target_not_found_tag = "target-not-found";
 var target_inside_lustre_tag = "target-inside-lustre";
