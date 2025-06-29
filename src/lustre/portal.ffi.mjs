@@ -1,27 +1,27 @@
-import { isLustreNode } from '../lustre/lustre/vdom/reconciler.ffi.mjs';
+import { isLustreNode } from "../../lustre/lustre/vdom/reconciler.ffi.mjs";
 import {
+  missing_selector_tag,
   invalid_selector_tag,
   target_inside_lustre_tag,
   target_not_found_tag,
-} from './lustre/portal.mjs';
+} from "./portal.mjs";
 
 export function register(name) {
-  customElements.define(name, Portal)
+  customElements.define(name, Portal);
 }
 
-const portals = Symbol('portals');
+const portals = Symbol("portals");
 
 class Portal extends HTMLElement {
-
   // -- CUSTOM ELEMENT IMPLEMENTATION ------------------------------------------
 
-  static observedAttributes = ["to"];
+  static observedAttributes = ["target", "root"];
 
   #targetElement = null;
   #childNodes = [];
 
   constructor() {
-    super()
+    super();
     this.#targetElement = this.#queryTarget();
     this.#childNodes = [...super.childNodes];
   }
@@ -29,7 +29,8 @@ class Portal extends HTMLElement {
   connectedCallback() {
     // the portal element exists in the tree, but we do not want it to have any
     // impact on layout.
-    this.style.display = 'none';
+    this.style.display = "none";
+
     // if the target is invalid, this call to getFragment will remove all
     // elements from the tree.
     this.#mount(this.#getFragment());
@@ -49,28 +50,41 @@ class Portal extends HTMLElement {
     const newIndex = addElement(portalsAtTarget, this);
 
     if (oldIndex !== newIndex) {
-     const referenceNode = portalsAtTarget[newIndex+1]?.firstChild ?? null;
-     for (const childNode of this.#childNodes) {
-       this.#targetElement.moveBefore(childNode, referenceNode);
-     }
-    }
-  }
+      const referenceNode = portalsAtTarget[newIndex + 1]?.firstChild ?? null;
 
-  attributeChangedCallback(name, oldValue, newValue) {
-    if (name === "to" && oldValue !== newValue) {
-      const newTarget = this.#queryTarget();
-      if (this.#targetElement !== newTarget) {
-        this.#remount(newTarget);
+      for (const childNode of this.#childNodes) {
+        this.#targetElement.moveBefore(childNode, referenceNode);
       }
     }
   }
 
-  get to() {
-    return super.getAttribute('to')
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (oldValue === newValue) return;
+
+    const newTargetElement = this.#queryTarget();
+
+    if (this.#targetElement !== newTargetElement) {
+      this.#remount(newTargetElement);
+    }
   }
 
-  set to(value) {
-    super.setAttribute('to', value);
+  get target() {
+    return super.getAttribute("target");
+  }
+
+  set target(value) {
+    super.setAttribute("target", typeof value === "string" ? value : "");
+  }
+
+  get root() {
+    return super.getAttribute("root");
+  }
+
+  set root(value) {
+    super.setAttribute(
+      "root",
+      value !== "relative" && value !== "document" ? "document" : value,
+    );
   }
 
   // -- INTERNALs --------------------------------------------------------------
@@ -90,7 +104,7 @@ class Portal extends HTMLElement {
 
     const portalsAtTarget = (this.#targetElement[portals] ??= []);
     const index = addElement(portalsAtTarget, this);
-    const referenceNode = portalsAtTarget[index+1]?.firstChild ?? null;
+    const referenceNode = portalsAtTarget[index + 1]?.firstChild ?? null;
     this.#targetElement.insertBefore(fragment, referenceNode);
   }
 
@@ -105,40 +119,60 @@ class Portal extends HTMLElement {
   }
 
   #queryTarget() {
-    // we coerce to an empty string such that not setting the attribute
-    // also throws with invalid-selector
-    const to = this.to ?? '';
-
-    let target = null;
-    try {
-      target = document.querySelector(to)
-    } catch {
-      return this.#dispatchInvalid(invalid_selector_tag);
+    if (!this.target) {
+      return this.#dispatchError(
+        missing_selector_tag,
+        "The target attribute cannot be empty.",
+      );
     }
 
-    if (!target) {
-      return this.#dispatchInvalid(target_not_found_tag);
-    }    
-    
+    let root = this.root === "relative" ? this.getRootNode() : document;
+    let targetElement = null;
+
+    try {
+      targetElement = root.querySelector(this.target);
+    } catch {
+      return this.#dispatchError(
+        invalid_selector_tag,
+        `The target "${this.target}" is not a valid query selector.`,
+        { selector: this.target },
+      );
+    }
+
+    if (!targetElement) {
+      return this.#dispatchError(
+        target_not_found_tag,
+        `No element matching "${this.target}".`,
+        { selector: this.target },
+      );
+    }
+
     // we do not allow you to target Lustre elements - so querying an element
     // in the same ShadowRoot cannot ever make sense, because you already
     // control the entire tree! It only makes sense to target top-level elements.
-    if (isLustreNode(target)) {
-      return this.#dispatchInvalid(target_inside_lustre_tag);
+    if (isLustreNode(targetElement)) {
+      return this.#dispatchError(
+        target_inside_lustre_tag,
+        `The element matching "${this.target}" must not be owned by Lustre.`,
+      );
     }
 
-    return target;
+    return targetElement;
   }
 
-  #dispatchInvalid(reason) {
-    this.dispatchEvent(new CustomEvent('invalid', {
-      detail: reason
-    }));
+  #dispatchError(tag, message = "", detail = {}) {
+    this.dispatchEvent(
+      new CustomEvent("error", {
+        detail: { tag, message, ...detail },
+      }),
+    );
+
     return null;
   }
 
   #getFragment() {
     const fragment = document.createDocumentFragment();
+
     for (const childNode of this.#childNodes) {
       fragment.appendChild(childNode);
     }
@@ -147,25 +181,29 @@ class Portal extends HTMLElement {
   }
 
   #moveOrInsert(newNode, referenceNode, callback) {
-    const newNodes = newNode.nodeType === Node.DOCUMENT_FRAGMENT_NODE
-      ? [...newNode.childNodes]
-      : [newNode];
+    const newNodes =
+      newNode.nodeType === Node.DOCUMENT_FRAGMENT_NODE
+        ? [...newNode.childNodes]
+        : [newNode];
 
-    const oldIndex = this.#childNodes.indexOf(newNode)
+    const oldIndex = this.#childNodes.indexOf(newNode);
 
-    const result = callback(newNode, referenceNode ?? this.lastChild?.nextSibling ?? null)
+    const result = callback(
+      newNode,
+      referenceNode ?? this.lastChild?.nextSibling ?? null,
+    );
 
     if (oldIndex >= 0) {
-      this.#childNodes.splice(oldIndex, 1)
+      this.#childNodes.splice(oldIndex, 1);
     }
 
     const index = referenceNode
       ? this.#childNodes.indexOf(referenceNode)
       : this.#childNodes.length;
 
-    this.#childNodes.splice(index, 0, ...newNodes)
+    this.#childNodes.splice(index, 0, ...newNodes);
 
-    return result
+    return result;
   }
 
   // -- FORWARD FUNCTIONS CALLED BY THE RECONCILER -----------------------------
@@ -183,22 +221,29 @@ class Portal extends HTMLElement {
   }
 
   moveBefore(newNode, referenceNode) {
-    return this.#moveOrInsert(newNode, referenceNode,
-      (newNode, referenceNode) =>
-        this.#targetElement?.moveBefore(newNode, referenceNode));
+    return this.#moveOrInsert(
+      newNode,
+      referenceNode,
+      (newNode, referenceNode) => {
+        this.#targetElement?.moveBefore(newNode, referenceNode);
+      },
+    );
   }
 
   insertBefore(newNode, referenceNode) {
-    return this.#moveOrInsert(newNode, referenceNode,
-      (newNode, referenceNode, ) =>
-        this.#targetElement?.insertBefore(newNode, referenceNode));
+    return this.#moveOrInsert(
+      newNode,
+      referenceNode,
+      (newNode, referenceNode) => {
+        this.#targetElement?.insertBefore(newNode, referenceNode);
+      },
+    );
   }
 
   removeChild(child) {
     const index = this.#childNodes.indexOf(child);
 
     this.#targetElement?.removeChild(child);
-
     this.#childNodes.splice(index, 1);
   }
 }
@@ -210,7 +255,7 @@ function findInsertionIndex(array, node) {
   let high = array.length - 1;
 
   while (low <= high) {
-    const mid = ((low + high) / 2)|0;
+    const mid = ((low + high) / 2) | 0;
     const position = node.compareDocumentPosition(array[mid]);
     if (position & Node.DOCUMENT_POSITION_FOLLOWING) {
       high = mid - 1;
@@ -244,17 +289,4 @@ function removeElement(array, node) {
   }
 
   return index;
-}
-
-// -- STYLE TAG PARSE ----------------------------------------------------------
-
-const commentRe = /\/\*[^*]*\*+(?:[^\/*][^*]*\*+)*\//g;
-const propertyRe = /[-#/*\\\w]+(?=\s*:)/g;
-
-function extractPropertyNames(style) {
-  if (!style) {
-    return [];
-  }
-
-  return style.replaceAll(commentRe, '').match(propertyRe);
 }
