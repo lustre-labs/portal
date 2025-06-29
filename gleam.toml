@@ -2,15 +2,20 @@ name = "lustre_portal"
 version = "1.0.0"
 target = "javascript"
 
-description = "A Portal Web Component for Lustre"
+description = "A portal component for Lustre to render children somewhere else in the DOM."
 repository = { type = "github", user = "lustre-labs", repo = "portal" }
 licences = ["MIT"]
 
 links = [
     { title = "Sponsor", href = "https://github.com/sponsors/hayleigh-dot-dev" },
 ]
-dev-dependencies = { esgleam = ">= 0.8.0 and < 1.0.0" , simplifile = ">= 2.3.0 and < 3.0.0" , gleam_regexp = ">= 1.1.1 and < 2.0.0" }
 
 [dependencies]
 gleam_stdlib = ">= 0.44.0 and < 2.0.0"
 lustre = ">= 5.2.1 and < 6.0.0"
+# lustre = { path = "../lustre" }
+
+[dev-dependencies]
+esgleam = ">= 0.8.0 and < 1.0.0"
+gleam_regexp = ">= 1.1.1 and < 2.0.0"
+simplifile = ">= 2.3.0 and < 3.0.0"
