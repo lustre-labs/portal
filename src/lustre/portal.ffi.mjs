@@ -4,6 +4,7 @@ import {
   invalid_selector_tag,
   target_inside_lustre_tag,
   target_not_found_tag,
+  target_is_cross_origin_iframe_tag,
 } from "./portal.mjs";
 
 export function register(name) {
@@ -73,7 +74,18 @@ class Portal extends HTMLElement {
   }
 
   set target(value) {
-    super.setAttribute("target", typeof value === "string" ? value : "");
+    if (value instanceof HTMLElement) {
+      const targetElement = this.#validateTargetElement(value);
+
+      if (targetElement) {
+        this.#remount(targetElement);
+      } else {
+        this.#unmount();
+        this.#targetElement = null;
+      }
+    } else {
+      super.setAttribute("target", typeof value === "string" ? value : "");
+    }
   }
 
   get root() {
@@ -139,12 +151,29 @@ class Portal extends HTMLElement {
       );
     }
 
+    return this.#validateTargetElement(targetElement);
+  }
+
+  #validateTargetElement(targetElement) {
     if (!targetElement) {
       return this.#dispatchError(
         target_not_found_tag,
         `No element matching "${this.target}".`,
         { selector: this.target },
       );
+    }
+
+    if (targetElement instanceof HTMLIFrameElement) {
+      const iframeBody = targetElement.contentDocument?.body;
+
+      if (!iframeBody) {
+        return this.#dispatchError(
+          target_is_cross_origin_iframe_tag,
+          `Only same-origin iframes can be targeted.`,
+        );
+      } else {
+        return iframeBody;
+      }
     }
 
     // we do not allow you to target Lustre elements - so querying an element

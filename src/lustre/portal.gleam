@@ -1,7 +1,11 @@
+//// A portal changes the physical placaement of its children in the DOM, while
+//// keeping them logically inside your Lustre app. This makes it possible to
+//// implement things like modals and tooltips that typically need to be rendered
+//// outside of the app root to ensure they properly overlay other elements.
+////
+
 // IMPORTS ---------------------------------------------------------------------
 
-///
-///
 import gleam/bool
 import gleam/dynamic/decode.{type Decoder}
 import lustre
@@ -43,6 +47,12 @@ pub type Error {
   /// with Lustre's virtual DOM and cause unexpected behaviour.
   ///
   TargetInsideLustre(selector: String)
+
+  /// The portal's `"target"` attribute points to an iframe but that iframe's
+  /// source is from a different origin. The portal can only teleport children
+  /// into an iframe when the iframe is from the same origin as your Lustre app.
+  ///
+  TargetIsCrossOriginIframe
 }
 
 /// The root element the portal will use to find the target element. This is used
@@ -75,6 +85,9 @@ pub const target_not_found_tag = "target-not-found"
 
 @internal
 pub const target_inside_lustre_tag = "target-inside-lustre"
+
+@internal
+pub const target_is_cross_origin_iframe_tag = "target-is-cross-origin-iframe"
 
 // ATTRIBUTES ------------------------------------------------------------------
 
