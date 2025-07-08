@@ -153,7 +153,17 @@ var Portal = class extends HTMLElement {
     return super.getAttribute("target");
   }
   set target(value) {
-    super.setAttribute("target", typeof value === "string" ? value : "");
+    if (value instanceof HTMLElement) {
+      const targetElement = this.#validateTargetElement(value);
+      if (targetElement) {
+        this.#remount(targetElement);
+      } else {
+        this.#unmount();
+        this.#targetElement = null;
+      }
+    } else {
+      super.setAttribute("target", typeof value === "string" ? value : "");
+    }
   }
   get root() {
     return super.getAttribute("root");
@@ -207,12 +217,26 @@ var Portal = class extends HTMLElement {
         { selector: this.target }
       );
     }
+    return this.#validateTargetElement(targetElement);
+  }
+  #validateTargetElement(targetElement) {
     if (!targetElement) {
       return this.#dispatchError(
         target_not_found_tag,
         `No element matching "${this.target}".`,
         { selector: this.target }
       );
+    }
+    if (targetElement instanceof HTMLIFrameElement) {
+      const iframeBody = targetElement.contentDocument?.body;
+      if (!iframeBody) {
+        return this.#dispatchError(
+          target_is_cross_origin_iframe_tag,
+          `Only same-origin iframes can be targeted.`
+        );
+      } else {
+        return iframeBody;
+      }
     }
     if (isLustreNode(targetElement)) {
       return this.#dispatchError(
@@ -337,6 +361,7 @@ var missing_selector_tag = "missing-selector";
 var invalid_selector_tag = "invalid-selector";
 var target_not_found_tag = "target-not-found";
 var target_inside_lustre_tag = "target-inside-lustre";
+var target_is_cross_origin_iframe_tag = "target-is-cross-origin-iframe";
 
 // dev/entry.mjs
 register2();
