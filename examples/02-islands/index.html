@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <title>Content islands with Lustre Portal</title>
+
+        <link rel="stylesheet" href="/priv/static/app.css" />
+        <script type="module" src="/priv/static/app.mjs"></script>
+    </head>
+
+    <body class="grid grid-cols-[2fr_3fr] grid-rows-[4rem_1fr]">
+        <h1 class="col-span-2 text-2xl font-semibold p-2">
+            Welcome to our hybrid app
+        </h1>
+        <div class="grid grid-cols-subgrid col-span-2">
+            <aside class="p-2">
+                <h2>This is server-rendered static markup.</h2>
+                <div id="sidebar"></div>
+            </aside>
+            <main id="app" class="p-2"></main>
+        </div>
+    </body>
+</html>
