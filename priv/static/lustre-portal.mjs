@@ -82,14 +82,7 @@ var SUPPORTS_MOVE_BEFORE = !!globalThis.HTMLElement?.prototype?.moveBefore;
 
 // build/dev/javascript/lustre/lustre/vdom/reconciler.ffi.mjs
 var meta = Symbol("lustre");
-var isLustreNode = (node) => {
-  while (node) {
-    if (node[meta])
-      return true;
-    node = node.parentNode;
-  }
-  return false;
-};
+var isLustreNode = (node) => !!node[meta];
 
 // build/dev/javascript/lustre/lustre/runtime/client/runtime.ffi.mjs
 var is_browser = () => !!document2();
@@ -110,7 +103,7 @@ function register(name2) {
   customElements.define(name2, Portal);
 }
 var portals = Symbol("portals");
-var Portal = class extends HTMLElement {
+var Portal = class _Portal extends HTMLElement {
   // -- CUSTOM ELEMENT IMPLEMENTATION ------------------------------------------
   static observedAttributes = ["target", "root"];
   #targetElement = null;
@@ -150,7 +143,7 @@ var Portal = class extends HTMLElement {
     }
   }
   get target() {
-    return super.getAttribute("target");
+    return super.getAttribute("target") ?? "";
   }
   set target(value) {
     if (value instanceof HTMLElement) {
@@ -213,8 +206,7 @@ var Portal = class extends HTMLElement {
     } catch {
       return this.#dispatchError(
         invalid_selector_tag,
-        `The target "${this.target}" is not a valid query selector.`,
-        { selector: this.target }
+        `The target "${this.target}" is not a valid query selector.`
       );
     }
     return this.#validateTargetElement(targetElement);
@@ -223,8 +215,7 @@ var Portal = class extends HTMLElement {
     if (!targetElement) {
       return this.#dispatchError(
         target_not_found_tag,
-        `No element matching "${this.target}".`,
-        { selector: this.target }
+        `No element matching "${this.target}".`
       );
     }
     if (targetElement instanceof HTMLIFrameElement) {
@@ -238,6 +229,12 @@ var Portal = class extends HTMLElement {
         return iframeBody;
       }
     }
+    if (targetElement instanceof _Portal) {
+      return this.#dispatchError(
+        target_is_portal_tag,
+        `The element matching "${this.target}" must not be another portal.`
+      );
+    }
     if (isLustreNode(targetElement)) {
       return this.#dispatchError(
         target_inside_lustre_tag,
@@ -249,7 +246,7 @@ var Portal = class extends HTMLElement {
   #dispatchError(tag, message = "", detail = {}) {
     this.dispatchEvent(
       new CustomEvent("error", {
-        detail: { tag, message, ...detail }
+        detail: { tag, message, selector: this.target, ...detail }
       })
     );
     return null;
@@ -362,6 +359,7 @@ var invalid_selector_tag = "invalid-selector";
 var target_not_found_tag = "target-not-found";
 var target_inside_lustre_tag = "target-inside-lustre";
 var target_is_cross_origin_iframe_tag = "target-is-cross-origin-iframe";
+var target_is_portal_tag = "target-is-portal";
 
 // dev/entry.mjs
 register2();

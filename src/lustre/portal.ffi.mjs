@@ -5,6 +5,7 @@ import {
   target_inside_lustre_tag,
   target_not_found_tag,
   target_is_cross_origin_iframe_tag,
+  target_is_portal_tag,
 } from "./portal.mjs";
 
 export function register(name) {
@@ -70,7 +71,7 @@ class Portal extends HTMLElement {
   }
 
   get target() {
-    return super.getAttribute("target");
+    return super.getAttribute("target") ?? '';
   }
 
   set target(value) {
@@ -147,7 +148,6 @@ class Portal extends HTMLElement {
       return this.#dispatchError(
         invalid_selector_tag,
         `The target "${this.target}" is not a valid query selector.`,
-        { selector: this.target },
       );
     }
 
@@ -159,7 +159,6 @@ class Portal extends HTMLElement {
       return this.#dispatchError(
         target_not_found_tag,
         `No element matching "${this.target}".`,
-        { selector: this.target },
       );
     }
 
@@ -174,6 +173,13 @@ class Portal extends HTMLElement {
       } else {
         return iframeBody;
       }
+    }
+
+    if (targetElement instanceof Portal) {
+      return this.#dispatchError(
+        target_is_portal_tag,
+        `The element matching "${this.target}" must not be another portal.`,
+      );
     }
 
     // we do not allow you to target Lustre elements - so querying an element
@@ -192,7 +198,7 @@ class Portal extends HTMLElement {
   #dispatchError(tag, message = "", detail = {}) {
     this.dispatchEvent(
       new CustomEvent("error", {
-        detail: { tag, message, ...detail },
+        detail: { tag, message, selector: this.target, ...detail },
       }),
     );
 
