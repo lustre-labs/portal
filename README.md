@@ -1,3 +1,52 @@
+<h1 align="center">Lustre Portal</h1>
+
+<div align="center">
+    Teleport elements anywhere in the DOM!
+</div>
+
+<br />
+
+<div align="center">
+  <a href="https://hex.pm/packages/lustre_portal">
+      <img src="https://img.shields.io/hexpm/v/lustre_portal"
+      alt="Available on Hex" />
+  </a>
+</div>
+
+<div align="center">
+  <h3>
+    <a href="https://hexdocs.pm/lustre">
+      Lustre
+    </a>
+    <span> | </span>
+    <a href="https://discord.gg/Fm8Pwmy">
+      Discord
+    </a>
+  </h3>
+</div>
+
+<div align="center">
+  <sub>Built with ❤︎ by
+  <a href="https://bsky.app/profile/joshi.monster">Yoshi~</a> and
+  <a href="https://bsky.app/profile/hayleigh.dev">Hayleigh Thompson</a>
+</div>
+
+---
+
+## Features
+
+- Select any element using standard CSS selectors.
+
+- Multiple portals can target the same element, preserving their order in the
+  DOM.
+
+- Support for portalled content inside a Web Component's shadow DOM or inside
+  an iframe's document.
+
+- A **standalone Web Component bundle** that can be used in server-rendered pages
+  or other frameworks, such as Phoenix LiveView or React.
+
+
 # lustre_portal
 
 [![Package Version](https://img.shields.io/hexpm/v/lustre_portal)](https://hex.pm/packages/lustre_portal)
@@ -9,191 +58,29 @@ by Lustre.
 
 ## Installation
 
+`lustre_portal` is published on [Hex](https://hex.pm/packages/lustre_portal)! You
+can add it to your Gleam projects from the command line:
+
 ```sh
-gleam add lustre_portal@1
+gleam add lustre lustre_portal
 ```
 
-## Basic Usage
+## Examples
 
-Sometimes a part of an app or of a component's view belongs to it logically, but
-from a visual standpoint, it should be displayed somewhere else in the DOM,
-outside of the hierarchy controlled by Lustre.
+`lustre_portal` is a Web Component that allows you to "teleport" a part of your
+app's view into a DOM node that exists outside of the DOM hierarchy controlled
+by Lustre. Below are a number of examples that demonstrate when that might be
+useful:
 
-A common example of this is controlling elements inside of the body. Normally,
-Lustre apps are mounted on a single element, so the body is not controlled by
-Lustre directly. It can make sense to visually add elements to the body though,
-for example to render full-screen modals or toasts that should be on top of all
-other elements in the document. We want the code that renders these elements to
-live locally in the part of the application where it makes logical sense, but
-visually, we need to "move" the rendered elements outside of our app, to avoid
-tricky issues with absolutely positioned elements.
+- [`01-toast`]() shows how to render toast messages that always appear above any
+  element's in your app.
 
-Consider the following example:
+- [`02-islands`]() demonstrates how `lustre_portal` can be used to have multiple
+  islands of dynamic content controlled by a single Lustre application.
 
-```gleam
-fn view(model) {
-  html.div([], [
-    html.h3([], [html.text("Lustre Portal Example")]),
-    view_flashes(model.flashes)
-  ])
-}
+- [`03-map-tooltip`]() renders Lustre elements inside of a Leaflet map tooltip,
+  showcasing how `lustre_portal` can be used to insert Lustre-controlled content
+  into a third-party library's DOM structure.
 
-fn view_flashes(flashes) {
-  html.div([attribute.class("flash-container")], {
-    use flash <- list.map(model.flashes)
-    let severity_class = case flash.severity {
-      Warning -> "warning"
-      Error -> "error"
-      Info -> "info"
-      Success -> "success"
-    }
-    
-    html.div([attribute.class("flash"), attribute.class(severity_class)], [
-      html.text(flash.message)
-    ])
-  })
-}
-```
-
-with the following CSS:
-
-```css
-.flash-container {
-  position: fixed;
-  z-index: 9999;
-  bottom: 15px;
-  right: 15px;
-  width: 300px;
-}
-
-.flash {
-  margin-top: 15px;
-  padding: 15px 10px;
-  border-radius: 5px;
-  width: 100%;
-  color: white;
-  font-size: 0.8em;
-  font-family: sans;
-  transition: opacity 0.5s, transform 0.5s;
-
-  &.warning {
-    background-color: darkgoldenrod;
-  }
-
-  &.error {
-    background-color: darkred;
-  }
-
-  &.info {
-    background-color: blue;
-  }
-
-  &.success {
-    background-color: darkgreen;
-  }
-}
-```
-
-We want to render a stack of flash / toast messages at the bottom-right corner
-of the screen.
-
-When keeping the `.flash-container` inside the DOM element controlled by Lustre,
-there are a number of potential issues:
-
-- `position: fixed` only places the element relative to the viewport when no
-  ancestor element has `transform`, `perspective` or `filter` set.
-- `z-index: 999` only constrains the z-index within the current stacking context,
-  and when multiple elements have the same `z-index` value set, they are rendered
-  in tree traversal order again.
-
-`lustre_portal` makes it possible to avoid these issues by allowing us to break
-out of the DOM structure, rendering our toast at the end of the body tag instead:
-
-```gleam
-import lustre/portal
-
-pub fn main() {
-  let assert Ok(_) = portal.register()
-  // ...
-}
-
-pub fn view(model) {
-  html.div([], [
-    html.h3([], [html.text("Lustre Portal Example")]),
-
-    portal.to(matching: "body", with: [], teleport: [view_flashes(model.flashes)])
-  ])
-}
-```
-
-The `to` target selector expects a CSS selector string. Here, we are essentially
-telling Lustre to "render these elements inside the `body` tag".
-
-The resulting HTML might look something like this:
-
-```html
-<body>
-  <div id="app">
-    <h3>Lustre Portal Example</h3>
-    <lustre-portal to="body"></lustre-portal>
-  </div>
-  <div class="flash-container">
-    <div class="flash success">
-      Element successfully teleported!
-    </div>
-  </div>
-</body>
-```
-
-Notice how the `.flash-container` is rendered outside of the `#app` div!
-
-## Multiple Portals to the same target
-
-When you have multiple portals targeting the same element, for example a toast
-and a modal module both teleporting elements to the `body`, `luste_portal` tries
-to preserve the order, such that the order of the teleported elements matches
-the order of portals in the tree.
-
-Given the following view:
-
-```gleam
-fn view() {
-  html.div([], [
-    portal.to(matching: "body", with: [], teleport: [html.div([], [text("A")])]),
-    portal.to(matching: "body", with: [], teleport: [html.div([], [text("B")])])
-  ])
-}
-```
-
-The rendered result is guaranteed to be:
-
-```html
-<body>
-  <!-- ... -->
-  <div>A</div>
-  <div>B</div>
-</body>
-```
-
-## Server-side rendering
-
-`lustre_portal` is a browser-only web component. Rendering it on the server
-will result in the HTML for all teleported children to be _inside_ of the portal
-element instead of at the portal target:
-
-```html
-<div id="app">
-  <lustre-portal to="body">
-    <div class="flash-container">
-      <!-- ... -->
-    </div>
-  </lustre-portal>
-</div>
-```
-
-Once the browser has loaded the web component, the elements will be correctly
-teleported to their target.
-
-If you require a specific structure in your server-side rendered HTML,
-`lustre_portal` will not work for that use case.
-
+- [`04-server-side-rendering`] shows how to use `lustre_portal` without a client
+  Lustre application.
