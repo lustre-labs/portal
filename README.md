@@ -42,6 +42,8 @@
 - Support for portalled content inside a Web Component's shadow DOM or inside
   an iframe's document.
 
+- Support forwarding `context-request` Events.
+
 - A **standalone Web Component bundle** that can be used in server-rendered pages
   or other frameworks, such as Phoenix LiveView or React.
 
