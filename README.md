@@ -37,8 +37,7 @@
 
 - Select any element using standard CSS selectors.
 
-- Multiple portals can target the same element, preserving their order in the
-  DOM.
+- Multiple portals can target the same element.
 
 - Support for portalled content inside a Web Component's shadow DOM or inside
   an iframe's document.

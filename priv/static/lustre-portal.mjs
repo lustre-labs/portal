@@ -102,7 +102,6 @@ var NotABrowser = class extends CustomType {
 function register(name2) {
   customElements.define(name2, Portal);
 }
-var portals = Symbol("portals");
 var Portal = class _Portal extends HTMLElement {
   // -- CUSTOM ELEMENT IMPLEMENTATION ------------------------------------------
   static observedAttributes = ["target", "root"];
@@ -115,45 +114,34 @@ var Portal = class _Portal extends HTMLElement {
   }
   connectedCallback() {
     this.style.display = "none";
-    this.#mount(this.#getFragment());
+    this.#remount();
   }
   disconnectedCallback() {
-    this.#unmount();
+    this.#remount();
   }
   connectedMoveCallback() {
-    if (!this.#targetElement) {
-      return;
-    }
-    const portalsAtTarget = this.#targetElement[portals] ??= [];
-    const oldIndex = removeElement(portalsAtTarget, this);
-    const newIndex = addElement(portalsAtTarget, this);
-    if (oldIndex !== newIndex) {
-      const referenceNode = portalsAtTarget[newIndex + 1]?.firstChild ?? null;
-      for (const childNode of this.#childNodes) {
-        this.#targetElement.moveBefore(childNode, referenceNode);
-      }
-    }
   }
-  attributeChangedCallback(name2, oldValue, newValue) {
+  attributeChangedCallback(_name, oldValue, newValue) {
     if (oldValue === newValue)
       return;
-    const newTargetElement = this.#queryTarget();
-    if (this.#targetElement !== newTargetElement) {
-      this.#remount(newTargetElement);
+    this.targetElement = this.#queryTarget();
+  }
+  get targetElement() {
+    return this.#targetElement;
+  }
+  set targetElement(element3) {
+    if (element3 === this.#targetElement) {
+      return;
     }
+    this.#targetElement = this.#validateTargetElement(element3);
+    this.#remount();
   }
   get target() {
     return super.getAttribute("target") ?? "";
   }
   set target(value) {
     if (value instanceof HTMLElement) {
-      const targetElement = this.#validateTargetElement(value);
-      if (targetElement) {
-        this.#remount(targetElement);
-      } else {
-        this.#unmount();
-        this.#targetElement = null;
-      }
+      this.targetElement = value;
     } else {
       super.setAttribute("target", typeof value === "string" ? value : "");
     }
@@ -167,29 +155,14 @@ var Portal = class _Portal extends HTMLElement {
       value !== "relative" && value !== "document" ? "document" : value
     );
   }
-  // -- INTERNALs --------------------------------------------------------------
-  #unmount() {
-    if (this.#targetElement) {
-      removeElement(this.#targetElement[portals], this);
+  // -- INTERNALS --------------------------------------------------------------
+  #remount() {
+    const fragment3 = document.createDocumentFragment();
+    for (const childNode of this.#childNodes) {
+      fragment3.appendChild(childNode);
     }
-    return this.#getFragment();
-  }
-  #mount(fragment3) {
-    if (!this.isConnected || !this.#targetElement) {
-      return;
-    }
-    const portalsAtTarget = this.#targetElement[portals] ??= [];
-    const index2 = addElement(portalsAtTarget, this);
-    const referenceNode = portalsAtTarget[index2 + 1]?.firstChild ?? null;
-    this.#targetElement.insertBefore(fragment3, referenceNode);
-  }
-  #remount(newTarget) {
     if (this.isConnected) {
-      const fragment3 = this.#unmount();
-      this.#targetElement = newTarget;
-      this.#mount(fragment3);
-    } else {
-      this.#targetElement = newTarget;
+      this.#targetElement?.insertBefore(fragment3, null);
     }
   }
   #queryTarget() {
@@ -251,13 +224,6 @@ var Portal = class _Portal extends HTMLElement {
     );
     return null;
   }
-  #getFragment() {
-    const fragment3 = document.createDocumentFragment();
-    for (const childNode of this.#childNodes) {
-      fragment3.appendChild(childNode);
-    }
-    return fragment3;
-  }
   #moveOrInsert(newNode, referenceNode, callback) {
     const newNodes = newNode.nodeType === Node.DOCUMENT_FRAGMENT_NODE ? [...newNode.childNodes] : [newNode];
     const oldIndex = this.#childNodes.indexOf(newNode);
@@ -306,36 +272,6 @@ var Portal = class _Portal extends HTMLElement {
     this.#childNodes.splice(index2, 1);
   }
 };
-function findInsertionIndex(array3, node) {
-  let low = 0;
-  let high = array3.length - 1;
-  while (low <= high) {
-    const mid = (low + high) / 2 | 0;
-    const position = node.compareDocumentPosition(array3[mid]);
-    if (position & Node.DOCUMENT_POSITION_FOLLOWING) {
-      high = mid - 1;
-    } else if (position & Node.DOCUMENT_POSITION_PRECEDING) {
-      low = mid + 1;
-    } else {
-      return mid;
-    }
-  }
-  return low;
-}
-function addElement(array3, node) {
-  const index2 = findInsertionIndex(array3, node);
-  if (array3[index2] !== node) {
-    array3.splice(index2, 0, node);
-  }
-  return index2;
-}
-function removeElement(array3, node) {
-  const index2 = array3.indexOf(node);
-  if (index2 >= 0) {
-    array3.splice(index2, 1);
-  }
-  return index2;
-}
 
 // build/dev/javascript/lustre_portal/lustre/portal.mjs
 var name = "lustre-portal";

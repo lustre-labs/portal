@@ -12,8 +12,6 @@ export function register(name) {
   customElements.define(name, Portal);
 }
 
-const portals = Symbol("portals");
-
 class Portal extends HTMLElement {
   // -- CUSTOM ELEMENT IMPLEMENTATION ------------------------------------------
 
@@ -32,42 +30,34 @@ class Portal extends HTMLElement {
     // the portal element exists in the tree, but we do not want it to have any
     // impact on layout.
     this.style.display = "none";
-
-    // if the target is invalid, this call to getFragment will remove all
-    // elements from the tree.
-    this.#mount(this.#getFragment());
+    this.#remount();
   }
 
   disconnectedCallback() {
-    this.#unmount();
+    this.#remount();
   }
 
   connectedMoveCallback() {
-    if (!this.#targetElement) {
-      return;
-    }
-
-    const portalsAtTarget = (this.#targetElement[portals] ??= []);
-    const oldIndex = removeElement(portalsAtTarget, this);
-    const newIndex = addElement(portalsAtTarget, this);
-
-    if (oldIndex !== newIndex) {
-      const referenceNode = portalsAtTarget[newIndex + 1]?.firstChild ?? null;
-
-      for (const childNode of this.#childNodes) {
-        this.#targetElement.moveBefore(childNode, referenceNode);
-      }
-    }
+    // We do not want to remove and re-insert all child elements when the portal
+    // element itself gets moved, so this is a no-op.
   }
 
-  attributeChangedCallback(name, oldValue, newValue) {
+  attributeChangedCallback(_name, oldValue, newValue) {
     if (oldValue === newValue) return;
+    this.targetElement = this.#queryTarget();
+  }
 
-    const newTargetElement = this.#queryTarget();
+  get targetElement() {
+    return this.#targetElement;
+  }
 
-    if (this.#targetElement !== newTargetElement) {
-      this.#remount(newTargetElement);
+  set targetElement(element) {
+    if (element === this.#targetElement) {
+      return;
     }
+    
+    this.#targetElement = this.#validateTargetElement(element);
+    this.#remount();
   }
 
   get target() {
@@ -76,14 +66,7 @@ class Portal extends HTMLElement {
 
   set target(value) {
     if (value instanceof HTMLElement) {
-      const targetElement = this.#validateTargetElement(value);
-
-      if (targetElement) {
-        this.#remount(targetElement);
-      } else {
-        this.#unmount();
-        this.#targetElement = null;
-      }
+      this.targetElement = value;
     } else {
       super.setAttribute("target", typeof value === "string" ? value : "");
     }
@@ -100,34 +83,18 @@ class Portal extends HTMLElement {
     );
   }
 
-  // -- INTERNALs --------------------------------------------------------------
+  // -- INTERNALS --------------------------------------------------------------
 
-  #unmount() {
-    if (this.#targetElement) {
-      removeElement(this.#targetElement[portals], this);
+  #remount() {
+    // move all elements to a fragment, effectively removing them.
+    const fragment = document.createDocumentFragment()
+    for (const childNode of this.#childNodes) {
+      fragment.appendChild(childNode)
     }
 
-    return this.#getFragment();
-  }
-
-  #mount(fragment) {
-    if (!this.isConnected || !this.#targetElement) {
-      return;
-    }
-
-    const portalsAtTarget = (this.#targetElement[portals] ??= []);
-    const index = addElement(portalsAtTarget, this);
-    const referenceNode = portalsAtTarget[index + 1]?.firstChild ?? null;
-    this.#targetElement.insertBefore(fragment, referenceNode);
-  }
-
-  #remount(newTarget) {
+    // if we are connected, insert them back at the desired target element.
     if (this.isConnected) {
-      const fragment = this.#unmount();
-      this.#targetElement = newTarget;
-      this.#mount(fragment);
-    } else {
-      this.#targetElement = newTarget;
+      this.#targetElement?.insertBefore(fragment, null);
     }
   }
 
@@ -205,16 +172,6 @@ class Portal extends HTMLElement {
     return null;
   }
 
-  #getFragment() {
-    const fragment = document.createDocumentFragment();
-
-    for (const childNode of this.#childNodes) {
-      fragment.appendChild(childNode);
-    }
-
-    return fragment;
-  }
-
   #moveOrInsert(newNode, referenceNode, callback) {
     const newNodes =
       newNode.nodeType === Node.DOCUMENT_FRAGMENT_NODE
@@ -281,47 +238,4 @@ class Portal extends HTMLElement {
     this.#targetElement?.removeChild(child);
     this.#childNodes.splice(index, 1);
   }
-}
-
-// -- BINARY SEARCH ------------------------------------------------------------
-
-function findInsertionIndex(array, node) {
-  let low = 0;
-  let high = array.length - 1;
-
-  while (low <= high) {
-    const mid = ((low + high) / 2) | 0;
-    const position = node.compareDocumentPosition(array[mid]);
-    if (position & Node.DOCUMENT_POSITION_FOLLOWING) {
-      high = mid - 1;
-    } else if (position & Node.DOCUMENT_POSITION_PRECEDING) {
-      low = mid + 1;
-    } else {
-      return mid;
-    }
-  }
-
-  return low;
-}
-
-function addElement(array, node) {
-  const index = findInsertionIndex(array, node);
-
-  if (array[index] !== node) {
-    array.splice(index, 0, node);
-  }
-
-  return index;
-}
-
-function removeElement(array, node) {
-  // NOTE: we cannot use the binary search here, because the element is already
-  // no longer part of the document tree, compareDocumentPosition will not work!
-  const index = array.indexOf(node);
-
-  if (index >= 0) {
-    array.splice(index, 1);
-  }
-
-  return index;
 }
