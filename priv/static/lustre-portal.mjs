@@ -102,6 +102,7 @@ var NotABrowser = class extends CustomType {
 function register(name2) {
   customElements.define(name2, Portal);
 }
+var symbol = Symbol("lustre-portal");
 var Portal = class _Portal extends HTMLElement {
   // -- CUSTOM ELEMENT IMPLEMENTATION ------------------------------------------
   static observedAttributes = ["target", "root"];
@@ -111,6 +112,7 @@ var Portal = class _Portal extends HTMLElement {
     super();
     this.#targetElement = this.#queryTarget();
     this.#childNodes = [...super.childNodes];
+    this.$childNodes.forEach((node) => this.#initChildNode(node));
   }
   connectedCallback() {
     this.style.display = "none";
@@ -231,12 +233,42 @@ var Portal = class _Portal extends HTMLElement {
       newNode,
       referenceNode ?? this.lastChild?.nextSibling ?? null
     );
+    newNodes.forEach((node) => this.#initChildNode(node));
     if (oldIndex >= 0) {
       this.#childNodes.splice(oldIndex, 1);
     }
     const index2 = referenceNode ? this.#childNodes.indexOf(referenceNode) : this.#childNodes.length;
     this.#childNodes.splice(index2, 0, ...newNodes);
     return result;
+  }
+  #initChildNode(node) {
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return;
+    }
+    node[symbol] ??= {};
+    if (!node[symbol].provider) {
+      node[symbol].provider = (event4) => {
+        event4.stopImmediatePropagation();
+        const retargeted = new Event(event4.type, {
+          bubbles: event4.bubbles,
+          composed: event4.composed
+        });
+        retargeted.context = event4.context;
+        retargeted.subscribe = event4.subscribe;
+        retargeted.callback = event4.callback;
+        this.dispatchEvent(retargeted);
+      };
+      node.addEventListener("context-request", node[symbol].provider);
+    }
+  }
+  #deinitChildNode(node) {
+    if (!node[symbol]) {
+      return;
+    }
+    if (node[symbol].provider) {
+      node.removeEventListener("context-request", node[symbol].provider);
+      node[symbol].provider = null;
+    }
   }
   // -- FORWARD FUNCTIONS CALLED BY THE RECONCILER -----------------------------
   get childNodes() {
@@ -269,6 +301,7 @@ var Portal = class _Portal extends HTMLElement {
   removeChild(child) {
     const index2 = this.#childNodes.indexOf(child);
     this.#targetElement?.removeChild(child);
+    this.#deinitChildNode(child);
     this.#childNodes.splice(index2, 1);
   }
 };

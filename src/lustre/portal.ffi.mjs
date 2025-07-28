@@ -12,6 +12,8 @@ export function register(name) {
   customElements.define(name, Portal);
 }
 
+const symbol = Symbol('lustre-portal');
+
 class Portal extends HTMLElement {
   // -- CUSTOM ELEMENT IMPLEMENTATION ------------------------------------------
 
@@ -24,6 +26,8 @@ class Portal extends HTMLElement {
     super();
     this.#targetElement = this.#queryTarget();
     this.#childNodes = [...super.childNodes];
+
+    this.$childNodes.forEach((node) => this.#initChildNode(node));
   }
 
   connectedCallback() {
@@ -55,7 +59,7 @@ class Portal extends HTMLElement {
     if (element === this.#targetElement) {
       return;
     }
-    
+
     this.#targetElement = this.#validateTargetElement(element);
     this.#remount();
   }
@@ -185,6 +189,8 @@ class Portal extends HTMLElement {
       referenceNode ?? this.lastChild?.nextSibling ?? null,
     );
 
+    newNodes.forEach((node) => this.#initChildNode(node));
+
     if (oldIndex >= 0) {
       this.#childNodes.splice(oldIndex, 1);
     }
@@ -196,6 +202,42 @@ class Portal extends HTMLElement {
     this.#childNodes.splice(index, 0, ...newNodes);
 
     return result;
+  }
+
+  #initChildNode(node) {
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return;
+    }
+
+    node[symbol] ??= {};
+    if (!node[symbol].provider) {
+      node[symbol].provider = (event) => {
+        event.stopImmediatePropagation();
+
+        const retargeted = new Event(event.type, {
+          bubbles: event.bubbles,
+          composed: event.composed
+        });
+
+        retargeted.context = event.context;
+        retargeted.subscribe = event.subscribe;
+        retargeted.callback = event.callback;
+
+        this.dispatchEvent(retargeted);
+      }
+      node.addEventListener('context-request', node[symbol].provider);
+    }
+  }
+
+  #deinitChildNode(node) {
+    if (!node[symbol]) {
+      return;
+    }
+
+    if (node[symbol].provider) {
+      node.removeEventListener('context-request', node[symbol].provider);
+      node[symbol].provider = null;
+    }
   }
 
   // -- FORWARD FUNCTIONS CALLED BY THE RECONCILER -----------------------------
@@ -236,6 +278,8 @@ class Portal extends HTMLElement {
     const index = this.#childNodes.indexOf(child);
 
     this.#targetElement?.removeChild(child);
+    this.#deinitChildNode(child);
+
     this.#childNodes.splice(index, 1);
   }
 }
