@@ -46,8 +46,6 @@ by Lustre.
 - Support for portalled content inside a Web Component's shadow DOM or inside
   an iframe's document.
 
-- Support forwarding `context-request` Events.
-
 - A **standalone Web Component bundle** that can be used in server-rendered HTML
   pages
 
@@ -73,10 +71,8 @@ your HTML.
 
 ## Examples
 
-`lustre_portal` is a Web Component that allows you to "teleport" a part of your
-app's view into a DOM node that exists outside of the DOM hierarchy controlled
-by Lustre. Below are a number of examples that demonstrate when that might be
-useful:
+Below are some examples of the most-common scenarios where `lustre_portal` can
+come in handy:
 
 - [`01-toast`](https://github.com/lustre-labs/portal/tree/main/examples/01-toast)
   shows how to render toast messages that always appear above any element's in
