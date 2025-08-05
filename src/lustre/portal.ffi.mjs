@@ -12,7 +12,7 @@ export function register(name) {
   customElements.define(name, Portal);
 }
 
-const symbol = Symbol('lustre-portal');
+const symbol = Symbol("lustre-portal");
 
 class Portal extends HTMLElement {
   // -- CUSTOM ELEMENT IMPLEMENTATION ------------------------------------------
@@ -26,8 +26,7 @@ class Portal extends HTMLElement {
     super();
     this.#targetElement = this.#queryTarget();
     this.#childNodes = [...super.childNodes];
-
-    this.$childNodes.forEach((node) => this.#initChildNode(node));
+    this.#childNodes.forEach((node) => this.#initChildNode(node));
   }
 
   connectedCallback() {
@@ -65,7 +64,7 @@ class Portal extends HTMLElement {
   }
 
   get target() {
-    return super.getAttribute("target") ?? '';
+    return super.getAttribute("target") ?? "";
   }
 
   set target(value) {
@@ -91,9 +90,9 @@ class Portal extends HTMLElement {
 
   #remount() {
     // move all elements to a fragment, effectively removing them.
-    const fragment = document.createDocumentFragment()
+    const fragment = document.createDocumentFragment();
     for (const childNode of this.#childNodes) {
-      fragment.appendChild(childNode)
+      fragment.appendChild(childNode);
     }
 
     // if we are connected, insert them back at the desired target element.
@@ -216,7 +215,7 @@ class Portal extends HTMLElement {
 
         const retargeted = new Event(event.type, {
           bubbles: event.bubbles,
-          composed: event.composed
+          composed: event.composed,
         });
 
         retargeted.context = event.context;
@@ -224,8 +223,8 @@ class Portal extends HTMLElement {
         retargeted.callback = event.callback;
 
         this.dispatchEvent(retargeted);
-      }
-      node.addEventListener('context-request', node[symbol].provider);
+      };
+      node.addEventListener("context-request", node[symbol].provider);
     }
   }
 
@@ -235,7 +234,7 @@ class Portal extends HTMLElement {
     }
 
     if (node[symbol].provider) {
-      node.removeEventListener('context-request', node[symbol].provider);
+      node.removeEventListener("context-request", node[symbol].provider);
       node[symbol].provider = null;
     }
   }
