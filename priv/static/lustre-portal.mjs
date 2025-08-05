@@ -82,7 +82,14 @@ var SUPPORTS_MOVE_BEFORE = !!globalThis.HTMLElement?.prototype?.moveBefore;
 
 // build/dev/javascript/lustre/lustre/vdom/reconciler.ffi.mjs
 var meta = Symbol("lustre");
-var isLustreNode = (node) => !!node[meta];
+var isLustreNode = (node) => {
+  while (node) {
+    if (node[meta])
+      return true;
+    node = node.parentNode;
+  }
+  return false;
+};
 
 // build/dev/javascript/lustre/lustre/runtime/client/runtime.ffi.mjs
 var is_browser = () => !!document2();
@@ -112,7 +119,7 @@ var Portal = class _Portal extends HTMLElement {
     super();
     this.#targetElement = this.#queryTarget();
     this.#childNodes = [...super.childNodes];
-    this.$childNodes.forEach((node) => this.#initChildNode(node));
+    this.#childNodes.forEach((node) => this.#initChildNode(node));
   }
   connectedCallback() {
     this.style.display = "none";
