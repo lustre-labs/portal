@@ -35,6 +35,10 @@
 
 ## Features
 
+`lustre_portal` is a web component that allows you to "teleport" a part of an
+app's view into a DOM node that exists outside of the DOM hierarchy controlled
+by Lustre.
+
 - Select any element using standard CSS selectors.
 
 - Multiple portals can target the same element.
@@ -44,18 +48,9 @@
 
 - Support forwarding `context-request` Events.
 
-- A **standalone Web Component bundle** that can be used in server-rendered pages
-  or other frameworks, such as Phoenix LiveView or React.
+- A **standalone Web Component bundle** that can be used in server-rendered HTML
+  pages
 
-
-# lustre_portal
-
-[![Package Version](https://img.shields.io/hexpm/v/lustre_portal)](https://hex.pm/packages/lustre_portal)
-[![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/lustre_portal/)
-
-`lustre_portal` is a web component that allows you to "teleport" a part of an
-app's view into a DOM node that exists outside of the DOM hierarchy controlled
-by Lustre.
 
 ## Installation
 
@@ -65,6 +60,16 @@ can add it to your Gleam projects from the command line:
 ```sh
 gleam add lustre lustre_portal
 ```
+
+It is also possible to use `lustre_portal` in static HTML pages without Lustre or
+Gleam by including the standalone Web Component bundle found in `priv/static` in
+your HTML.
+
+> **Note**: `lustre_portal` is not currently intended to be used by _other frameworks_
+> like React or Vue. Teleporting may behave unpredictably or not at all in these
+> cases. If you're interested in using `lustre_portal` with another framework,
+> please [open an issue](https://github.com/lustre-labs/portal/issues/new) so we
+> can better understand your use case and see if we can help!
 
 ## Examples
 
