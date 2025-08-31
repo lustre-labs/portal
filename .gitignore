@@ -4,3 +4,4 @@ build/
 erl_crash.dump
 example/priv/static/
 examples/**/priv/static/
+**/node_modules/**
