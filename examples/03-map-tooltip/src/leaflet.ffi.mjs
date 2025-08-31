@@ -1,3 +1,6 @@
+import "leaflet";
+import "leaflet/dist/leaflet.css";
+
 export function setup_map(selector) {
   const container = document.querySelector(selector);
   const map = leaflet.map(container);
