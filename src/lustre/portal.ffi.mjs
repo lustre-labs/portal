@@ -24,7 +24,6 @@ class Portal extends HTMLElement {
 
   constructor() {
     super();
-    this.#targetElement = this.#queryTarget();
     this.#childNodes = [...super.childNodes];
     this.#childNodes.forEach((node) => this.#initChildNode(node));
   }
@@ -33,6 +32,7 @@ class Portal extends HTMLElement {
     // the portal element exists in the tree, but we do not want it to have any
     // impact on layout.
     this.style.display = "none";
+    this.#targetElement = this.#queryTarget();
     this.#remount();
   }
 
