@@ -9,6 +9,12 @@ Changelogs can change! If you spot something is wrong or missing, please conside
 [opening an issue](https://github.com/lustre-labs/lustre/issues/new) or a pull
 request to fix it.
 
+## [Unreleased]
+
+### Changed
+
+- [lustre/portal] Fixed a bug where portal targetElement was queried before the component was mounted.
+
 ## [v1.0.0] - 2025-08-05
 
 - [lustre/portal] Initial release! 🚀
