@@ -1,5 +1,5 @@
 name = "lustre_portal"
-version = "1.0.0"
+version = "1.0.1"
 target = "javascript"
 
 description = "A portal component for Lustre to render children somewhere else in the DOM."
