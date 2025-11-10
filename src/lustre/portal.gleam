@@ -1,4 +1,4 @@
-//// A portal changes the physical placaement of its children in the DOM, while
+//// A portal changes the physical placement of its children in the DOM, while
 //// keeping them logically inside your Lustre app. This makes it possible to
 //// implement things like modals and tooltips that typically need to be rendered
 //// outside of the app root to ensure they properly overlay other elements.
