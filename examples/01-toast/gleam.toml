@@ -9,4 +9,4 @@ lustre_portal = { path = "../../" }
 
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"
-lustre_dev_tools = ">= 1.9.0 and < 2.0.0"
+lustre_dev_tools = ">= 2.3.5 and < 3.0.0"
