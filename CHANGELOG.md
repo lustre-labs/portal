@@ -9,6 +9,12 @@ Changelogs can change! If you spot something is wrong or missing, please conside
 [opening an issue](https://github.com/lustre-labs/lustre/issues/new) or a pull
 request to fix it.
 
+## Unreleased
+
+### Changed
+
+- [lustre/portal] Fixed a bug where view functions using `lustre-portal` could not be server-side-rendered on the JavaScript target.
+
 ## [v1.0.1] - 2025-11-01
 
 ### Changed
